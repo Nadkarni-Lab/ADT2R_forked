@@ -15,7 +15,9 @@ def train_one_epoch(model, loader, device):
         for key in batch.keys():
             record[key] = batch[key].to(device)
 
-        loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=True)
+        ## changing update=True to is_train=True
+        #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=True)
+        loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True)
         loss_all_b = loss_act_b + loss_reg_b + loss_actor_b + loss_critic_b
         loss_all += loss_all_b.cpu().detach().numpy()
 
