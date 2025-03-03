@@ -177,7 +177,17 @@ class ADT2R(nn.Module):
 
         self.embed_ln_tr= nn.LayerNorm(self.h_dim) # Embedding Linear Layer for Treatment Recommendation
 
+        ## create self.embed_ln_high
+        self.embed_ln_high = nn.LayerNorm(h_dim) # Embedding Linear Layer for High
+
         self.policy = nn.Linear(h_dim, act_dim) # Policy
+
+        ## adding transformer and transformer_high
+        self.transformer = Block(self.h_dim, self.max_t * 2, self.n_heads, self.drop_p, self.device, self.n_tokens)
+
+        ## create self.transformer_high
+        #self.transformer_high = Block(self.h_dim, self.max_t * 3, self.n_heads, self.drop_p, self.device, self.n_tokens)
+        self.transformer_high = Block(h_dim, self.max_t * 3, n_heads, drop_p, device, n_tokens)
 
 
         self.optimiser_actor = torch.optim.RAdam(
@@ -205,6 +215,9 @@ class ADT2R(nn.Module):
                                                          step_size=self.lr_step)
 
         self.ce_none = nn.CrossEntropyLoss(reduction="none")
+
+        # Define a predict_action method using the policy.
+        self.predict_action = lambda h: self.policy(h)
 
     @staticmethod
     def soft_update(local_model, target_model, tau):
@@ -351,8 +364,12 @@ class ADT2R(nn.Module):
         goal_action_value_state_embeddings = goal_action_value_state_embeddings.reshape(B, 3 * T, self.h_dim)
         high_stacked_embeddings = self.embed_ln_high(goal_action_value_state_embeddings)
 
+        ##Let transformer_high compute its own indices:
+        #h_hat, loss_reg_hat, cidx_hat = self.transformer_high(high_stacked_embeddings, sindices=cidx)
         h_hat, loss_reg_hat, cidx_hat = self.transformer_high(
-            high_stacked_embeddings, sindices=cidx)
+            high_stacked_embeddings)
+
+
         h_goal_action_value_state_high = h_hat.reshape(B, T, 3, self.h_dim).permute(0, 2, 1, 3)
         h_state_high = h_goal_action_value_state_high[:, 2]
 

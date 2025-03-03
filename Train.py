@@ -34,7 +34,8 @@ def eval_(model, loader, device):
             for key in batch.keys():
                 record[key]  = batch[key].to(device)
 
-            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=False)
+            #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=False)
+            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=False)
 
             loss_all_b = loss_act_b + loss_reg_b + loss_actor_b + loss_critic_b
             loss_all += loss_all_b.cpu().detach().numpy()
@@ -67,4 +68,9 @@ def run(args, device, exp_name):
 
         vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device)
         ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis = eval_(model, test_loader, device)
+
+        print(f"Epoch: {ep}, Train Loss: {tr_loss}, Validation Loss: {vl_loss}, Test Loss: {ts_loss}")
+        print(f"Validation Accuracy: {vl_acc}, Jaccard: {vl_jaccard}, Recall: {vl_recall}, WIS: {vl_wis}")
+        print(f"Test Accuracy: {ts_acc}, Jaccard: {ts_jaccard}, Recall: {ts_recall}, WIS: {ts_wis}")
+
 
