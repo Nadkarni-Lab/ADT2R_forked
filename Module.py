@@ -158,9 +158,11 @@ class ADT2R(nn.Module):
         self.embed_state = nn.Linear(self.state_dim, self.h_dim)
         self.embed_action = nn.Embedding(self.act_dim, self.h_dim)
         self.embed_mortality = nn.Linear(1, self.h_dim)
+
         ## correcting typo embed_estimated_state
         #self.embed_estiated_state = nn.Linear(1, self.h_dim)
         self.embed_estimated_state = nn.Linear(1, self.h_dim)
+        
         self.embed_hiddens_low= nn.Sequential(torch.nn.Linear(h_dim * 2, h_dim),
                                                nn.LayerNorm(h_dim),
                                                nn.GELU(),
@@ -179,6 +181,7 @@ class ADT2R(nn.Module):
 
         self.policy = nn.Linear(h_dim, act_dim) # Policy
 
+        self.transformer = Block(self.h_dim, self.max_t * 2, self.n_heads, self.drop_p, self.device, self.n_tokens)
 
         self.optimiser_actor = torch.optim.RAdam(
             list(self.embed_ln.parameters()) + list(self.embed_timestep.parameters()) +
