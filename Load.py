@@ -5,11 +5,12 @@ from torch.utils.data import Dataset, DataLoader
 
 
 """ Indices of the interested EHR variables """
-demo_idx = np.array([])
-vital_idx = np.array([])
-lab_idx = np.array([])
-sofa_idx = np.array([])
-action_idx = np.array([])
+demo_idx = np.array([4,5,6,7,8,58,59,60])
+## 'obs_6' to 'obs_26'
+vital_idx = np.array([9,10, 11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])
+lab_idx = np.array([30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45])
+sofa_idx = np.array([46,47,48,49,50,51,52,53,54,55,56,57])
+action_idx = np.array([2])
 
 def load_fold(args):
 
@@ -34,11 +35,11 @@ class CustomDataset(Dataset):
         self.n_class = n_class
 
         if self.mode in ["Train", "train"]:
-            self.fpath = data_path + f"Fold{self.fold}_Train.csv"
+            self.fpath = data_path + f"Fold{self.fold}_Train2.csv"
         elif self.mode in ["Valid", "valid"]:
-            self.fpath = data_path + f"Fold{self.fold}_Valid.csv"
+            self.fpath = data_path + f"Fold{self.fold}_Valid2.csv"
         elif self.mode in ["Test", "test"]:
-            self.fpath = data_path + f"Fold{self.fold}_Test.csv"
+            self.fpath = data_path + f"Fold{self.fold}_Test2.csv"
         else:
             raise KeyError("Unknown mode. You should select one among train, valid, and test.")
 

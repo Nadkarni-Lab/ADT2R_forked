@@ -130,7 +130,8 @@ class Block(nn.Module):
         return x, loss_reg, cidx
 
 class ADT2R(nn.Module):
-    def __init__(self, state_dim, act_dim, h_dim, n_heads, drop_p, max_t, device, lr, w_decay, lr_decay, lr_step, lam_actor, lam_critic, lam_reg, gamma, tau):
+    ## adding n_tokens default value
+    def __init__(self, state_dim, act_dim, h_dim, n_heads, drop_p, max_t, device, lr, w_decay, lr_decay, lr_step, lam_actor, lam_critic, lam_reg, gamma, tau, n_tokens=1):
         super().__init__()
 
         self.device = device
@@ -149,30 +150,36 @@ class ADT2R(nn.Module):
         self.lam_reg = lam_reg
         self.gamma = gamma
         self.tau = tau
+        ## assigning n_tokens to self
+        self.n_tokens = n_tokens
 
         self.embed_ln = nn.LayerNorm(self.h_dim)
         self.embed_timestep = nn.Embedding(self.max_t, h_dim)
         self.embed_state = nn.Linear(self.state_dim, self.h_dim)
         self.embed_action = nn.Embedding(self.act_dim, self.h_dim)
         self.embed_mortality = nn.Linear(1, self.h_dim)
-        self.embed_estiated_state= nn.Linear(1, self.h_dim)
+
+        ## correcting typo embed_estimated_state
+        #self.embed_estiated_state = nn.Linear(1, self.h_dim)
+        self.embed_estimated_state = nn.Linear(1, self.h_dim)
+        
         self.embed_hiddens_low= nn.Sequential(torch.nn.Linear(h_dim * 2, h_dim),
                                                nn.LayerNorm(h_dim),
                                                nn.GELU(),
                                                nn.Dropout())
 
-        self.critic = nn.Linear(self.h_dim, self.act_dim)
-        self.critic_target = deepcopy(self.critic)
-        self.actor = nn.Linear(self.h_dim, self.act_dim)
-        self.actor_target = deepcopy(self.actor)
+        self.critic = nn.Linear(self.h_dim, self.act_dim) # Critic
+        self.critic_target = deepcopy(self.critic) # Critic Target
+        self.actor = nn.Linear(self.h_dim, self.act_dim) # Actor
+        self.actor_target = deepcopy(self.actor) # Actor Target
 
-        self.ve_adt = Block(self.h_dim, self.max_t * 2, self.n_heads, self.drop_p, self.device, self.n_tokens)
+        self.ve_adt = Block(self.h_dim, self.max_t * 2, self.n_heads, self.drop_p, self.device, self.n_tokens) # Value Estimation
 
-        self.tr_adt = Block(self.h_dim, self.max_t * 3, self.n_heads, self.drop_p, self.device, self.n_tokens)
+        self.tr_adt = Block(self.h_dim, self.max_t * 3, self.n_heads, self.drop_p, self.device, self.n_tokens) # Treatment Recommendation
 
-        self.embed_ln_tr= nn.LayerNorm(self.h_dim)
+        self.embed_ln_tr= nn.LayerNorm(self.h_dim) # Embedding Linear Layer for Treatment Recommendation
 
-        self.policy = nn.Linear(h_dim, act_dim)
+        self.policy = nn.Linear(h_dim, act_dim) # Policy
 
         self.transformer = Block(self.h_dim, self.max_t * 2, self.n_heads, self.drop_p, self.device, self.n_tokens)
 
@@ -208,8 +215,9 @@ class ADT2R(nn.Module):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
     def forward(self, records, is_train=True):
-
-        timesteps = records["sequences"].type(torch.LongTensor).to(self.device)
+        ## modified 'sequences' to 'sequence' as it was in the Load.py
+        #timesteps = records["sequence"].type(torch.LongTensor).to(self.device)
+        timesteps = records["sequence"].type(torch.LongTensor).to(self.device)
         states = records["observation"]
         actions = records["action"]
         actions_ = actions.view(-1)
