@@ -42,9 +42,9 @@ def parse_args():
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
     ## adding the 3 files separately instead of within data_path
-    parser.add_argument("--train-data", type=str, default="Fold0_Train3.csv")
-    parser.add_argument("--val-data", type=str, default="Fold0_Val3.csv")
-    parser.add_argument("--test-data", type=str, default="Fold0_Test3.csv")
+    parser.add_argument("--train-data", type=str, default="Fold0_Train4.csv")
+    parser.add_argument("--val-data", type=str, default="Fold0_Val4.csv")
+    parser.add_argument("--test-data", type=str, default="Fold0_Test4.csv")
     parser.add_argument("--results_path", type=str, default="./Results/")
 
     return parser.parse_args()
