@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument("--lr_step", type=int, default=2, help="Learning rate decay stepsize")
     parser.add_argument("--w_decay", default=0.0001, type=float, help="Weight decay (lambda) ℓ2 regularization")
     parser.add_argument("--bs", type=int, default=64, help="Batch size")
-    parser.add_argument("--total_epoch", type=int, default=1000, help="# of epochs")
+    parser.add_argument("--total_epoch", type=int, default=3000, help="# of epochs")
     parser.add_argument("--gpu", type=int, default=0, help="GPU number")
     parser.add_argument("--save", type=bool, default=True)
     parser.add_argument("--lam_reg", type=float, default=1.0, help="Regularization loss coefficient")
