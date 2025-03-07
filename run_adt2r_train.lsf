@@ -1,0 +1,23 @@
+#!/bin/bash
+#BSUB -J RL_ARDS_adt2r
+#BSUB -P acc_EHR_ML
+#BSUB -q private
+#BSUB -R span[hosts=1]
+#BSUB -n 10
+#BSUB -W 60:00
+#BSUB -R rusage[mem=50000]
+#BSUB -oo /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/logs/%J.%I.stdout
+#BSUB -eo /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/logs/%J.%I.stderr
+
+ml purge
+
+export PYTHONPATH="/sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/RL_ARDS:$PYTHONPATH"
+
+. /sc/arion/projects/EHR_ML/pushkala_work/.pyenv/versions/RL_ARDS_2025/bin/activate
+
+# Run script
+cd /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/
+
+python /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/Run.py
+
+echo "done"
