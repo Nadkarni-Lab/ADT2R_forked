@@ -36,5 +36,6 @@
   "data_path": "./Data/",
   "train_data": "Fold0_Train3.csv",
   "val_data": "Fold0_Val3.csv",
-  "test_data": "Fold0_Test3.csv"
+  "test_data": "Fold0_Test3.csv",
+  "results_path": "./Results/"
 }

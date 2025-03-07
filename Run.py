@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument("--n_heads", type=int, default=4)
     parser.add_argument("--drop_p", type=float, default=0.5)
     parser.add_argument("--missing_rate", type=float, default=0.2)
-    parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.01, help="Learning rate") ### start with 0.001 or 10^-4 generally 3e-4 and then adjust based on the results.
     parser.add_argument("--lr_decay", type=float, default=0.99, help="Learning rate decay")
     parser.add_argument("--lr_step", type=int, default=2, help="Learning rate decay stepsize")
     parser.add_argument("--w_decay", default=0.0001, type=float, help="Weight decay (lambda) ℓ2 regularization")
@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument("--train-data", type=str, default="Fold0_Train3.csv")
     parser.add_argument("--val-data", type=str, default="Fold0_Val3.csv")
     parser.add_argument("--test-data", type=str, default="Fold0_Test3.csv")
+    parser.add_argument("--results_path", type=str, default="./Results/")
 
     return parser.parse_args()
 

@@ -29,7 +29,7 @@ def calculate_wis(probs_list, trues_list, rewards_list, masks_list, gamma=0.99):
 
     rho_list = []
     for probs, rewards, masks, reals in zip(probs_list, rewards_list, masks_list, trues_list):
-        print(probs, rewards, masks, reals)
+        #print(probs, rewards, masks, reals)
 
         assert len(probs) == len(rewards) == len(masks) == len(reals)
         rho = []
@@ -191,6 +191,7 @@ def process_data_further(args):
     test_df = test_df.drop(columns=categorical_var_list).reset_index(drop=True)
     val_df = val_df.drop(columns=categorical_var_list).reset_index(drop=True)
 
+    ### do a "join"
     train_data = pd.concat([train_df, train_encoded_df], axis=1)
     test_data = pd.concat([test_df, test_encoded_df], axis=1)
     val_data = pd.concat([val_df, val_encoded_df], axis=1)

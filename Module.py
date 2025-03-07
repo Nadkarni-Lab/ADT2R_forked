@@ -189,7 +189,7 @@ class ADT2R(nn.Module):
         #self.transformer_high = Block(self.h_dim, self.max_t * 3, self.n_heads, self.drop_p, self.device, self.n_tokens)
         self.transformer_high = Block(h_dim, self.max_t * 3, n_heads, drop_p, device, n_tokens)
 
-
+        ## RAdam not Adam optimizer.
         self.optimiser_actor = torch.optim.RAdam(
             list(self.embed_ln.parameters()) + list(self.embed_timestep.parameters()) +
             list(self.embed_state.parameters()) + list(self.embed_action.parameters())
@@ -250,11 +250,11 @@ class ADT2R(nn.Module):
 
         """ Token Embedding module """
         time_embeddings = self.embed_timestep(timesteps)  # [B,T,H]
-        print(time_embeddings.shape)
+        #print(time_embeddings.shape)
         state_embeddings_temp = self.embed_state(states)
-        print(state_embeddings_temp.shape)
+        #print(state_embeddings_temp.shape)
         state_embeddings = state_embeddings_temp + time_embeddings  # [B,T,H]
-        print(state_embeddings.shape)
+        #print(state_embeddings.shape)
         action_embeddings_temp = self.embed_action(actions)
         action_embeddings = action_embeddings_temp + time_embeddings  # [B,T,H]
         state_action_embeddings = torch.stack((state_embeddings, action_embeddings), dim=1)  # [B,2,T,H]
@@ -291,7 +291,7 @@ class ADT2R(nn.Module):
         # If the patient at the last step survived: 15, died: -15, otherwise: 0.
 
         ## modified 'mortality' to 'reward' as it was in the Load.py
-        print(records["reward"])
+        #(records["reward"])
         R_T = records["reward"]
 
         next = R_T + self.gamma * v_hat_at_next

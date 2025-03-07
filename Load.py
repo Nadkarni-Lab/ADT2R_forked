@@ -4,6 +4,8 @@ import numpy as np
 import Utils as ut
 from torch.utils.data import Dataset, DataLoader
 
+from sklearn.preprocessing import StandardScaler
+
 
 """ Indices of the interested EHR variables """
 ## For PJ Vent subset data Fold0_Train3.csv 1, 5-7, 9-11, 131-132, 141-205
@@ -52,6 +54,8 @@ def load_fold_new(args):
     ### process non-numeric data in the dataset - this should be refactored into the imputation code later on. Ensure the returned DF order is retained: Train, test then val.
     train_data2, test_data2, val_data2 = ut.process_data_further(args)
 
+
+
     ## Create the CustomDataset
     trainset = CustomDataset(
         # data_path=args.data_path,
@@ -89,6 +93,23 @@ def load_fold_new(args):
 
 
 
+def scale_dataframe(df, columns):
+    """
+    Scales the specified columns of the dataframe using StandardScaler.
+    Returns the scaled dataframe and the fitted scaler.
+    """
+    scaler = StandardScaler()
+    df[columns] = scaler.fit_transform(df[columns])
+    return df, scaler
+
+
+def scale_features(df, indices):
+    # Get column names based on the provided indices
+    feature_columns = df.columns[indices].tolist()
+    scaler = StandardScaler()
+    # Fit and transform only the selected columns
+    df[feature_columns] = scaler.fit_transform(df[feature_columns])
+    return df, scaler
 
 
 class CustomDataset(Dataset):
@@ -115,6 +136,18 @@ class CustomDataset(Dataset):
 
         self.df = data
         self.head = self.df.columns
+
+        # # Identify the columns to scale (for example, all vital signs and lab values)
+        # feature_columns = list(self.df.columns[vital_idx, lab_idx, sofa_idx, mortality_idx])  # update indices as needed
+
+        # Optionally, if you want to scale your features:
+        # Combine all the indices into one array. If they are numpy arrays:
+        all_indices = np.concatenate((vital_idx, lab_idx, sofa_idx, mortality_idx, reward_idx))
+
+        # Apply scaling to those columns:
+        # self.df, self.scaler = scale_dataframe(self.df, feature_columns)
+        self.df, self.scaler = scale_features(self.df, all_indices)
+
 
         #self.pindices = self.df[['subject_id', 'hadm_id', 'stay_id', 'ventnum']].unique()
         ## create my own "r
@@ -157,7 +190,7 @@ class CustomDataset(Dataset):
 
     def get_data(self, idx):
 
-        print("index:"+str(idx))
+        #print("index:"+str(idx))
 
         condition = self.df.traj == idx
         vitals = self.df[condition].iloc[:, vital_idx].values #[T, 8]
@@ -183,7 +216,7 @@ class CustomDataset(Dataset):
         # sofa_ren = sofas[:, 5]
         # sofa_all = sofas[:, -1]
 
-        print(sofas.shape)
+        #print(sofas.shape)
 
         sofa_res = sofas[:, 1]   ###  GCS average score
         sofa_coa = sofas[:, 2]   ### RASS_AVG_tw_score
@@ -204,6 +237,7 @@ class CustomDataset(Dataset):
 
         # Get EHR variables
         data = np.concatenate((vitals, labs), axis=-1)  # [sequence, variables]
+        ###
         mask_data_real = ~ np.isnan(data)  # 1: observed, 0: missing
         delta = self.parse_delta(mask_data_real, direction="forward", time=sequence)
         delta_sofa = self.parse_delta(mask_sofa_all, direction="forward", time=sequence)
