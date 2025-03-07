@@ -1,6 +1,6 @@
 {
-  "state_dim": 51,
-  "action_dim": 25,
+  "state_dim": 136,
+  "action_dim": 2401,
   "h_dim": 60,
   "n_heads": 4,
   "drop_p": 0.5,
@@ -21,7 +21,20 @@
   "n_tokens": 20,
   "interval": 4,
   "fold": 0,
-  "max_timestep": 20,
+  "max_timestep": 72,
+  "categorical_variables": [
+    "race",
+    "admission_type",
+    "admission_location",
+    "discharge_location",
+    "insurance",
+    "language",
+    "marital_status",
+    "event"
+  ],
   "config_path": "./Configuration/",
-  "data_path": "./Data/"
+  "data_path": "./Data/",
+  "train_data": "Fold0_Train3.csv",
+  "val_data": "Fold0_Val3.csv",
+  "test_data": "Fold0_Test3.csv"
 }

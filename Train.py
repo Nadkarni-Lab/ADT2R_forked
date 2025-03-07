@@ -30,6 +30,9 @@ def eval_(model, loader, device):
 
     with torch.no_grad():
         for bidx, batch in enumerate(loader):
+            print("batch: ", batch)
+            print("bidx: ", bidx)
+
             record = dict()
             for key in batch.keys():
                 record[key]  = batch[key].to(device)
@@ -56,7 +59,11 @@ def run(args, device, exp_name):
     print("**\t", exp_name)
     print("**\t Load dataset")
 
-    train_loader, valid_loader, test_loader = ld.load_fold(args)
+    ### add args.data as a dict to the args (other code used a ut.Namespace but we prob don't need that:
+    args.data = {"train": args.train_data, "val": args.val_data, "test": args.test_data}
+
+    #train_loader, valid_loader, test_loader = ld.load_fold(args)
+    train_loader, valid_loader, test_loader = ld.load_fold_new(args)
 
     model = md.ADT2R(args.state_dim, args.action_dim, args.h_dim, args.n_heads, args.drop_p, args.max_timestep, device, args.lr, args.w_decay, args.lr_decay, args.lr_step, args.lam_actor, args.lam_critic, args.lam_reg, args.gamma, args.tau).to(device)
     scheduler = model.scheduler
@@ -72,5 +79,7 @@ def run(args, device, exp_name):
         print(f"Epoch: {ep}, Train Loss: {tr_loss}, Validation Loss: {vl_loss}, Test Loss: {ts_loss}")
         print(f"Validation Accuracy: {vl_acc}, Jaccard: {vl_jaccard}, Recall: {vl_recall}, WIS: {vl_wis}")
         print(f"Test Accuracy: {ts_acc}, Jaccard: {ts_jaccard}, Recall: {ts_recall}, WIS: {ts_wis}")
+
+    print("Training completed")
 
 

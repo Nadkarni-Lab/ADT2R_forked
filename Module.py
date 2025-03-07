@@ -250,8 +250,13 @@ class ADT2R(nn.Module):
 
         """ Token Embedding module """
         time_embeddings = self.embed_timestep(timesteps)  # [B,T,H]
-        state_embeddings = self.embed_state(states) + time_embeddings  # [B,T,H]
-        action_embeddings = self.embed_action(actions) + time_embeddings  # [B,T,H]
+        print(time_embeddings.shape)
+        state_embeddings_temp = self.embed_state(states)
+        print(state_embeddings_temp.shape)
+        state_embeddings = state_embeddings_temp + time_embeddings  # [B,T,H]
+        print(state_embeddings.shape)
+        action_embeddings_temp = self.embed_action(actions)
+        action_embeddings = action_embeddings_temp + time_embeddings  # [B,T,H]
         state_action_embeddings = torch.stack((state_embeddings, action_embeddings), dim=1)  # [B,2,T,H]
         state_action_embeddings = state_action_embeddings.permute(0, 2, 1, 3)  # [B,T,2,H]
         state_action_embeddings = state_action_embeddings.reshape(B, 2 * T, self.h_dim)
@@ -282,8 +287,12 @@ class ADT2R(nn.Module):
             v_size[:2])  # [B,T]
 
         # Real reward
-        R_T = records["mortality"] * 15
+        #R_T = records["mortality"] * 15
         # If the patient at the last step survived: 15, died: -15, otherwise: 0.
+
+        ## modified 'mortality' to 'reward' as it was in the Load.py
+        print(records["reward"])
+        R_T = records["reward"]
 
         next = R_T + self.gamma * v_hat_at_next
 
