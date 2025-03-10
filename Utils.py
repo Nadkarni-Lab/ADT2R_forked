@@ -109,9 +109,9 @@ class Namespace:
 
 def process_data_further(args):
 
-    train_df = pd.read_csv(f"{args.data_path}/{args.data['train']}", index_col=None, sep=',').reset_index(drop=True)
-    test_df = pd.read_csv(f"{args.data_path}/{args.data['test']}", index_col=None, sep=',').reset_index(drop=True)
-    val_df = pd.read_csv(f"{args.data_path}/{args.data['val']}", index_col=None, sep=',').reset_index(drop=True)
+    train_df = pd.read_csv(f"{args.data_path}/{args.data['train']}", index_col=None, sep='\t').reset_index(drop=True)
+    test_df = pd.read_csv(f"{args.data_path}/{args.data['test']}", index_col=None, sep='\t').reset_index(drop=True)
+    val_df = pd.read_csv(f"{args.data_path}/{args.data['val']}", index_col=None, sep='\t').reset_index(drop=True)
 
     ### Pre-Processing of Continuous Action Features
     # ------------------------------

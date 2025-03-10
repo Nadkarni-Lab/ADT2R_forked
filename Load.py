@@ -8,44 +8,25 @@ from sklearn.preprocessing import StandardScaler
 
 
 """ Indices of the interested EHR variables """
-## For PJ Vent subset data Fold0_Train3.csv 1, 5-7, 9-11, 131-132, 141-205
-demo_idx = np.array([1,5,6,7,9,10,11, 131, 132, 141 , 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205])
-## 13, 15, 18-47
-vital_idx = np.array([13, 15, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47])
-## 48-71
-lab_idx = np.array([48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71])
-sofa_idx = np.array([103, 104, 105])
-action_idx = np.array([140])
+## For PJ Vent subset data Fold0_Train3.csv 1, 5-7, 9-11, 143-165
+demo_idx = np.array([1,5,6,7,10,11, 12, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158,
+                     159, 160, 161, 162, 163, 164, 165])
+## 18, 20-27, 29, 32, 34-51, 111-126
+vital_idx = np.array([18, 20, 21, 22, 23, 24, 25, 26, 27, 29, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+                      47, 48, 49, 50, 51, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126])
+## 53 - 107
+lab_idx = np.array([53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+                    78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
+                    103, 104, 105, 106, 107])
+sofa_idx = np.array([108, 109, 110])
+action_idx = np.array([142])
 
 ## adding sequence_idx = index for col 'hr'
-sequence_idx = np.array([12])
+sequence_idx = np.array([17])
 
 ## adding index for mortality and reward
-mortality_idx = np.array([8])
-reward_idx = np.array([127])
-
-
-## for dummy data Fold0_Train2.csv
-# demo_idx = np.array([4,5,6,7,8,58,59,60])
-# ## 'obs_6' to 'obs_26'
-# vital_idx = np.array([9,10, 11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])
-# lab_idx = np.array([30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45])
-# sofa_idx = np.array([46,47,48,49,50,51,52,53,54,55,56,57])
-# action_idx = np.array([2])
-
-
-## updating to use the load_fold_new(args) function - PJ Mar 5th 2025
-# def load_fold(args):
-#
-#     trainset = CustomDataset(args.data_path, interval=args.interval, fold=args.fold, mode="Train", missing_rate=args.missing_rate, max_length=args.max_timestep, n_class=25)
-#     validset = CustomDataset(args.data_path, interval=args.interval, fold=args.fold, mode="Valid", missing_rate=args.missing_rate, max_length=args.max_timestep, n_class=25)
-#     testset = CustomDataset(args.data_path, interval=args.interval, fold=args.fold, mode="Test", missing_rate=args.missing_rate, max_length=args.max_timestep, n_class=25)
-#
-#     trainloader = DataLoader(trainset, args.bs, shuffle=True)
-#     validloader = DataLoader(validset, args.bs, shuffle=False)
-#     testloader = DataLoader(testset, args.bs, shuffle=False)
-#
-#     return trainloader, validloader, testloader
+mortality_idx = np.array([167])
+reward_idx = np.array([132])
 
 
 
@@ -122,18 +103,6 @@ class CustomDataset(Dataset):
         self.mode = mode
         self.T = max_length
         self.n_class = n_class
-
-        # if self.mode in ["Train", "train"]:
-        #     self.fpath = data_path + f"Fold{self.fold}_Train3.csv"
-        # elif self.mode in ["Valid", "valid"]:
-        #     self.fpath = data_path + f"Fold{self.fold}_Valid2.csv"
-        # elif self.mode in ["Test", "test"]:
-        #     self.fpath = data_path + f"Fold{self.fold}_Test2.csv"
-        # else:
-        #     raise KeyError("Unknown mode. You should select one among train, valid, and test.")
-        #
-        # self.df = pd.read_csv(self.fpath)
-
         self.df = data
         self.head = self.df.columns
 
@@ -191,7 +160,6 @@ class CustomDataset(Dataset):
     def get_data(self, idx):
 
         #print("index:"+str(idx))
-
         condition = self.df.traj == idx
         vitals = self.df[condition].iloc[:, vital_idx].values #[T, 8]
         labs = self.df[condition].iloc[:, lab_idx].values #[T, 22]
@@ -208,16 +176,7 @@ class CustomDataset(Dataset):
         mortality_last = np.array([mortality[-1]])
 
         # Get SOFA scores  sofa_24hours	 gcs_average	 RASS_AVG_tw_score
-        # sofa_res = sofas[:, 0]
-        # sofa_coa = sofas[:, 1]
-        # sofa_liv = sofas[:, 2]
-        # sofa_car = sofas[:, 3]
-        # sofa_cns = sofas[:, 4]
-        # sofa_ren = sofas[:, 5]
-        # sofa_all = sofas[:, -1]
-
         #print(sofas.shape)
-
         sofa_res = sofas[:, 1]   ###  GCS average score
         sofa_coa = sofas[:, 2]   ### RASS_AVG_tw_score
         sofa_liv = sofas[:, 0]   ### SOFA 24 hrs

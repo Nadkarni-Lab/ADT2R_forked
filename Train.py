@@ -1,3 +1,5 @@
+import os
+
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -12,6 +14,8 @@ import csv
 def train_one_epoch(model, loader, device, ep, csv_writer):
     model.train()
     loss_all = 0
+    train_q_values = []  # to collect Q-values for each batch
+
     for bidx, batch in enumerate(loader):
         print("TRAIN bidx: ", bidx)
 
@@ -20,8 +24,10 @@ def train_one_epoch(model, loader, device, ep, csv_writer):
             record[key] = batch[key].to(device)
 
         ## changing update=True to is_train=True
-        #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=True)
-        loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True)
+        #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True)
+        loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
+            record, is_train=True, return_q=False)
+
         print("TRAIN loss_act_b: ", loss_act_b)
         print("TRAIN loss_reg_b: ", loss_reg_b)
         print("TRAIN loss_actor_b: ", loss_actor_b)
@@ -45,7 +51,15 @@ def train_one_epoch(model, loader, device, ep, csv_writer):
 
         loss_all += loss_all_b.cpu().detach().numpy()
 
-    return loss_all / len(loader)
+        # also log or accumulate other outputs as needed.)
+        train_q_values.append(q_values.cpu().detach().numpy())
+
+    # Concatenate Q-values from all batches (e.g., along the batch dimension)
+    import numpy as np
+    train_q_values = np.concatenate(train_q_values, axis=0)
+
+    #return loss_all / len(loader)
+    return loss_all / len(loader), train_q_values
 
 
 
@@ -53,6 +67,7 @@ def eval_(model, loader, device, ep, csv_writer):
     model.eval()
     loss_all = 0
     preds, reals, masks, probs, rewards = [], [], [], [], []
+    all_q_values = []  # to collect full Q-value tensors (v_hat) per batch
 
     with torch.no_grad():
         for bidx, batch in enumerate(loader):
@@ -65,8 +80,10 @@ def eval_(model, loader, device, ep, csv_writer):
 
             #print("EVAL record: ", record)
 
-            #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, update=False)
-            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=False)
+            #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=False)
+            # Note: unpack additional outputs (q_values and selected_q_values)
+            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
+                record, is_train=False)
 
             print("EVAL loss_act_b: ", loss_act_b)
             print("EVAL loss_reg_b: ", loss_reg_b)
@@ -98,9 +115,19 @@ def eval_(model, loader, device, ep, csv_writer):
             probs.extend(prob_b.cpu().detach().numpy())
             rewards.extend(record["mortality"].cpu().detach().numpy())
 
-    acc, jaccard, recall, wis = ut.calculate_metric(np.array(reals), np.array(preds), np.array(masks), np.array(probs), np.array(rewards))
+            # Save the Q-values for this batch
+            all_q_values.append(q_values.cpu().detach().numpy())
 
-    return loss_all / len(loader), acc, jaccard, recall, wis
+    # Optionally concatenate all batches along the batch dimension
+    import numpy as np
+    all_q_values = np.concatenate(all_q_values, axis=0)
+
+
+    acc, jaccard, recall, wis = ut.calculate_metric(np.array(reals), np.array(preds), np.array(masks), np.array(probs), np.array(rewards))
+    ### Also return all_q_values
+    #return loss_all / len(loader), acc, jaccard, recall, wis
+    return loss_all / len(loader), acc, jaccard, recall, wis, all_q_values
+
 
 
 def run(args, device, exp_name):
@@ -146,12 +173,16 @@ def run(args, device, exp_name):
 
         for ep in tqdm(range(args.total_epoch)):
 
-            tr_loss = train_one_epoch(model, train_loader, device, ep, train_writer)
+            #tr_loss = train_one_epoch(model, train_loader, device, ep, train_writer)
+            tr_loss, train_q_values = train_one_epoch(model, train_loader, device, ep, train_writer)
+
             #print(f"Epoch: {ep}, Train Loss: {tr_loss}")
             scheduler.step()
 
-            vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device, ep, val_writer)
-            ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis = eval_(model, test_loader, device, ep, test_writer)
+            # vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device, ep, val_writer)
+            # ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis = eval_(model, test_loader, device, ep, test_writer)
+            vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis, valid_q_values  = eval_(model, valid_loader, device, ep, val_writer)
+            ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis, test_q_values = eval_(model, test_loader, device, ep, test_writer)
 
             #if ep >= 5:
                 # vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device)
@@ -171,6 +202,11 @@ def run(args, device, exp_name):
                 vl_acc, vl_jaccard, vl_recall, vl_wis,
                 ts_acc, ts_jaccard, ts_recall, ts_wis
             ])
+
+            # Save the Q-value arrays for this epoch
+            np.save(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.npy"), train_q_values)
+            np.save(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.npy"), valid_q_values)
+            np.save(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.npy"), test_q_values)
 
     print("Training completed")
 

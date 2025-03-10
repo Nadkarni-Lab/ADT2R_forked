@@ -224,7 +224,7 @@ class ADT2R(nn.Module):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau * local_param.data + (1.0 - tau) * target_param.data)
 
-    def forward(self, records, is_train=True):
+    def forward(self, records, is_train=True, return_q=False):
         ## modified 'sequences' to 'sequence' as it was in the Load.py
         #timesteps = records["sequence"].type(torch.LongTensor).to(self.device)
         timesteps = records["sequence"].type(torch.LongTensor).to(self.device)
@@ -263,18 +263,22 @@ class ADT2R(nn.Module):
         ve_stacked_embeddings = self.embed_ln(state_action_embeddings)  # [B, 2*T, H]
 
         """ Value Estimation module """
+        ## Pass through value estimation transformer block
         h, loss_reg, cidx = self.ve_adt(ve_stacked_embeddings)
 
         h_state_action = h.reshape(B, T, 2, self.h_dim).permute(0, 2, 1, 3)
         h_state = h_state_action[:,0]
 
+        # Critic returns full Q-values for all actions
         v_hat = self.critic(h_state)
         v_size = list(v_hat.size())  # [B,T,C]
+        # Get Q-value for the taken actions
         v_hat_ = v_hat.view(-1, self.act_dim)  # [B*T, 25]
         v_hat_at = v_hat_[list(range(v_size[0] * v_size[1])), list(actions_.data.cpu().numpy().astype(np.int32))].view(
             v_size[:2])  # [B,T]
         # Here, list(actions.data~~) is the action class index.
 
+        # Compute target for critic loss
         v_hat_next = self.critic_target(h_state)
         v_hat_next = torch.cat((v_hat_next[:, 1:], torch.zeros(size=(v_size[0], 1, v_size[-1]), device=self.device)),
                                dim=1)  # [B,T,C]
@@ -293,14 +297,13 @@ class ADT2R(nn.Module):
         ## modified 'mortality' to 'reward' as it was in the Load.py
         #(records["reward"])
         R_T = records["reward"]
-
         next = R_T + self.gamma * v_hat_at_next
-
         td = v_hat_at - next  # [B,T]
 
         loss_critic = td ** 2 * records["seq_mask"]  # [B,T]
         loss_critic = self.lam_critic * loss_critic.sum() / records["seq_mask"].sum()
 
+        # Update critic in training mode:
         if is_train: # Critic
             self.optimiser_critic.zero_grad()
             loss_critic.backward()
@@ -398,4 +401,13 @@ class ADT2R(nn.Module):
             action_reg_loss.backward()
             self.optimiser_all.step()
 
-        return action_loss, reg_loss, loss_actor, loss_critic, action_probs, action_preds
+        ### also return the full Q-value tensor and the selected Q-values - Capturing v_hat (the full Q‑values for all
+        # actions) and v_hat_at (the Q‑value for the taken action).
+        #return action_loss, reg_loss, loss_actor, loss_critic, action_probs, action_preds
+        if is_train:
+            if return_q:
+                return action_loss, reg_loss, loss_actor, loss_critic, action_probs, action_preds, v_hat, v_hat_at
+            else:
+                return action_loss, reg_loss, loss_actor, loss_critic, action_probs, action_preds
+        else:
+            return action_loss, reg_loss, loss_actor, loss_critic, action_probs, action_preds, v_hat, v_hat_at
