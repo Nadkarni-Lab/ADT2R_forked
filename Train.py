@@ -7,7 +7,7 @@ from tqdm import tqdm
 import Load as ld
 import Utils as ut
 import Module as md
-
+import h5py
 import csv
 
 
@@ -232,9 +232,58 @@ def run(args, device, exp_name):
             ])
 
             # Save the Q-value arrays for this epoch
-            np.save(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.npy"), train_q_values)
-            np.save(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.npy"), valid_q_values)
-            np.save(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.npy"), test_q_values)
+            # np.save(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.npy"), train_q_values)
+            # np.save(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.npy"), valid_q_values)
+            # np.save(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.npy"), test_q_values)
+            # Save training Q-values with gzip compression (compression level 9)
+
+            # If train_q_values is None, create an empty array; otherwise, process it.
+            if train_q_values is None or len(train_q_values) == 0:
+                train_q_values_arr = np.empty((0,), dtype=np.float32)
+            else:
+                try:
+                    # Try concatenating the list of arrays
+                    train_q_values_arr = np.concatenate(train_q_values, axis=0)
+                except ValueError:
+                    # If concatenation fails due to mismatched shapes, try stacking instead
+                    train_q_values_arr = np.stack(train_q_values, axis=0)
+                train_q_values_arr = train_q_values_arr.astype(np.float32)
+
+            with h5py.File(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.h5"), 'w') as f:
+                f.create_dataset('q_values', data=train_q_values_arr, compression='gzip', compression_opts=9)
+
+            # Save validation Q-values
+            # If valid_q_values is None, create an empty array; otherwise, process it.
+            if valid_q_values is None or len(valid_q_values) == 0:
+                valid_q_values_arr = np.empty((0,), dtype=np.float32)
+            else:
+                try:
+                    # Try concatenating the list of arrays
+                    valid_q_values_arr = np.concatenate(valid_q_values, axis=0)
+                except ValueError:
+                    # If concatenation fails due to mismatched shapes, try stacking instead
+                    valid_q_values_arr = np.stack(valid_q_values, axis=0)
+                valid_q_values_arr = valid_q_values_arr.astype(np.float32)
+
+            with h5py.File(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.h5"), 'w') as f:
+                f.create_dataset('q_values', data=valid_q_values_arr, compression='gzip', compression_opts=9)
+
+            # Save test Q-values
+            # If test_q_values is None, create an empty array; otherwise, process it.
+            if test_q_values is None or len(test_q_values) == 0:
+                test_q_values_arr = np.empty((0,), dtype=np.float32)
+            else:
+                try:
+                    # Try concatenating the list of arrays
+                    test_q_values_arr = np.concatenate(test_q_values, axis=0)
+                except ValueError:
+                    # If concatenation fails due to mismatched shapes, try stacking instead
+                    test_q_values_arr = np.stack(test_q_values, axis=0)
+                test_q_values_arr = test_q_values_arr.astype(np.float32)
+
+
+            with h5py.File(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.h5"), 'w') as f:
+                f.create_dataset('q_values', data=test_q_values_arr, compression='gzip', compression_opts=9)
 
     print("Training completed")
 
