@@ -18,6 +18,6 @@ export PYTHONPATH="/sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/RL_
 # Run script
 cd /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/
 
-python /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/Run.py
+python /sc/arion/projects/EHR_ML/pushkala_work/RL_ARDS_WORKSPACE/ADT2R_forked/Run_Minerva.py
 
 echo "done"

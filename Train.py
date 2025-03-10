@@ -11,7 +11,7 @@ import Module as md
 import csv
 
 
-def train_one_epoch(model, loader, device, ep, csv_writer):
+def train_one_epoch(model, loader, device, ep, csv_writer, return_q_values=False):
     model.train()
     loss_all = 0
     train_q_values = []  # to collect Q-values for each batch
@@ -25,18 +25,42 @@ def train_one_epoch(model, loader, device, ep, csv_writer):
 
         ## changing update=True to is_train=True
         #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True)
-        loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
-            record, is_train=True, return_q=True)
+        #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
+        #                   record, is_train=True, return_q=False)
+        if return_q_values:
 
-        print("TRAIN loss_act_b: ", loss_act_b)
-        print("TRAIN loss_reg_b: ", loss_reg_b)
-        print("TRAIN loss_actor_b: ", loss_actor_b)
-        print("TRAIN loss_critic_b: ", loss_critic_b)
-        print("TRAIN prob_b: ", prob_b.shape)
-        print("TRAIN pred_b: ", pred_b.shape)
+            print("RETURN Q-values is TRUE")
+            # Request Q-values from the model
+            outputs = model(record, is_train=True, return_q=True)
+            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = outputs
+
+            print("TRAIN loss_act_b: ", loss_act_b)
+            print("TRAIN loss_reg_b: ", loss_reg_b)
+            print("TRAIN loss_actor_b: ", loss_actor_b)
+            print("TRAIN loss_critic_b: ", loss_critic_b)
+            print("TRAIN prob_b: ", prob_b.shape)
+            print("TRAIN pred_b: ", pred_b.shape)
+
+
+            # Accumulate Q-values (e.g., the full Q-value tensor)
+            train_q_values.append(q_values.cpu().detach().numpy())
+
+        else:
+            print("RETURN Q-values is FALSE")
+            # Do not return Q-values
+            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True,
+                                                                                        return_q=False)
+            print("TRAIN loss_act_b: ", loss_act_b)
+            print("TRAIN loss_reg_b: ", loss_reg_b)
+            print("TRAIN loss_actor_b: ", loss_actor_b)
+            print("TRAIN loss_critic_b: ", loss_critic_b)
+            print("TRAIN prob_b: ", prob_b.shape)
+            print("TRAIN pred_b: ", pred_b.shape)
+
 
         loss_all_b = loss_act_b + loss_reg_b + loss_actor_b + loss_critic_b
         print("TRAIN loss_all_b: ", loss_all_b)
+
 
         # Write batch info to CSV. We use .item() to get the scalar value.
         csv_writer.writerow([
@@ -51,15 +75,14 @@ def train_one_epoch(model, loader, device, ep, csv_writer):
 
         loss_all += loss_all_b.cpu().detach().numpy()
 
-        # also log or accumulate other outputs as needed.)
-        train_q_values.append(q_values.cpu().detach().numpy())
-
-    # Concatenate Q-values from all batches (e.g., along the batch dimension)
-    import numpy as np
-    train_q_values = np.concatenate(train_q_values, axis=0)
-
-    #return loss_all / len(loader)
-    return loss_all / len(loader), train_q_values
+    # return loss_all / len(loader)
+    if return_q_values:
+        # Concatenate Q-values from all batches (e.g., along the batch dimension)
+        import numpy as np
+        train_q_values = np.concatenate(train_q_values, axis=0)
+        return loss_all / len(loader), train_q_values
+    else:
+        return loss_all / len(loader)
 
 
 
@@ -174,7 +197,12 @@ def run(args, device, exp_name):
         for ep in tqdm(range(args.total_epoch)):
 
             #tr_loss = train_one_epoch(model, train_loader, device, ep, train_writer)
-            tr_loss, train_q_values = train_one_epoch(model, train_loader, device, ep, train_writer)
+            if args.return_q_values:
+                tr_loss, train_q_values = train_one_epoch(model, train_loader, device, ep, train_writer,
+                                                          return_q_values=True)
+            else:
+                tr_loss = train_one_epoch(model, train_loader, device, ep, train_writer, return_q_values=False)
+                train_q_values = None
 
             #print(f"Epoch: {ep}, Train Loss: {tr_loss}")
             scheduler.step()
