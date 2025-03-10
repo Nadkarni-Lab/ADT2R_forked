@@ -26,7 +26,7 @@ def train_one_epoch(model, loader, device, ep, csv_writer):
         ## changing update=True to is_train=True
         #loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b = model(record, is_train=True)
         loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
-            record, is_train=True, return_q=False)
+            record, is_train=True, return_q=True)
 
         print("TRAIN loss_act_b: ", loss_act_b)
         print("TRAIN loss_reg_b: ", loss_reg_b)
