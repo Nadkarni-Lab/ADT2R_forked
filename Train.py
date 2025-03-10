@@ -1,6 +1,7 @@
 import os
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from tqdm import tqdm
 
@@ -167,6 +168,10 @@ def run(args, device, exp_name):
     model = md.ADT2R(args.state_dim, args.action_dim, args.h_dim, args.n_heads, args.drop_p, args.max_timestep, device, args.lr, args.w_decay, args.lr_decay, args.lr_step, args.lam_actor, args.lam_critic, args.lam_reg, args.gamma, args.tau).to(device)
     scheduler = model.scheduler
 
+    # Initialize the SummaryWriter with a log directory.
+    writer = SummaryWriter(log_dir=str(args.q_log_dir)+"ADTR_Fold"+str(args.fold))
+
+
     # Open CSV files for train, validation, and test losses.
     # The files will have the columns: bidx, ep, loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, loss_all
     with open(str(args.results_path)+'/train_loss.csv', 'w', newline='') as train_file, \
@@ -249,41 +254,112 @@ def run(args, device, exp_name):
                     train_q_values_arr = np.stack(train_q_values, axis=0)
                 train_q_values_arr = train_q_values_arr.astype(np.float32)
 
-            with h5py.File(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.h5"), 'w') as f:
-                f.create_dataset('q_values', data=train_q_values_arr, compression='gzip', compression_opts=9)
+                q_mean = train_q_values_arr.mean().item()
+                q_std = train_q_values_arr.std().item()
 
-            # Save validation Q-values
-            # If valid_q_values is None, create an empty array; otherwise, process it.
+                # Log scalar summary stats.
+                writer.add_scalar("TRAIN_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("TRAIN_Q_Values/Std", q_std, ep)
+
+                # Log a histogram of the Q-values.
+                writer.add_histogram("TRAIN_Q_Values/Histogram", train_q_values_arr, ep)
+
+                print(f"Epoch {ep}: TRAIN Q-Values mean = {q_mean:.4f}, std = {q_std:.4f}")
+
             if valid_q_values is None or len(valid_q_values) == 0:
                 valid_q_values_arr = np.empty((0,), dtype=np.float32)
             else:
                 try:
-                    # Try concatenating the list of arrays
                     valid_q_values_arr = np.concatenate(valid_q_values, axis=0)
                 except ValueError:
-                    # If concatenation fails due to mismatched shapes, try stacking instead
                     valid_q_values_arr = np.stack(valid_q_values, axis=0)
                 valid_q_values_arr = valid_q_values_arr.astype(np.float32)
 
-            with h5py.File(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.h5"), 'w') as f:
-                f.create_dataset('q_values', data=valid_q_values_arr, compression='gzip', compression_opts=9)
+                q_mean = valid_q_values_arr.mean().item()
+                q_std = valid_q_values_arr.std().item()
 
-            # Save test Q-values
-            # If test_q_values is None, create an empty array; otherwise, process it.
+                # Log scalar summary stats.
+                writer.add_scalar("VALID_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("VALID_Q_Values/Std", q_std, ep)
+
+                # Log a histogram of the Q-values.
+                writer.add_histogram("VALID_Q_Values/Histogram", valid_q_values_arr, ep)
+
+                print(f"Epoch {ep}: VALID Q-Values mean = {q_mean:.4f}, std = {q_std:.4f}")
+
             if test_q_values is None or len(test_q_values) == 0:
                 test_q_values_arr = np.empty((0,), dtype=np.float32)
             else:
                 try:
-                    # Try concatenating the list of arrays
                     test_q_values_arr = np.concatenate(test_q_values, axis=0)
                 except ValueError:
-                    # If concatenation fails due to mismatched shapes, try stacking instead
                     test_q_values_arr = np.stack(test_q_values, axis=0)
                 test_q_values_arr = test_q_values_arr.astype(np.float32)
 
+                q_mean = test_q_values_arr.mean().item()
+                q_std = test_q_values_arr.std().item()
 
-            with h5py.File(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.h5"), 'w') as f:
-                f.create_dataset('q_values', data=test_q_values_arr, compression='gzip', compression_opts=9)
+                # Log scalar summary stats.
+                writer.add_scalar("TEST_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("TEST_Q_Values/Std", q_std, ep)
+
+                # Log a histogram of the Q-values.
+                writer.add_histogram("TEST_Q_Values/Histogram", test_q_values_arr, ep)
+
+                print(f"Epoch {ep}: TEST Q-Values mean = {q_mean:.4f}, std = {q_std:.4f}")
+
+
+            ### SAVE Q-Values to h5 files only every 10 epochs
+            if ep % 10 == 0:
+                # If train_q_values is None, create an empty array; otherwise, process it.
+                if train_q_values is None or len(train_q_values) == 0:
+                    train_q_values_arr = np.empty((0,), dtype=np.float32)
+                else:
+                    try:
+                        # Try concatenating the list of arrays
+                        train_q_values_arr = np.concatenate(train_q_values, axis=0)
+                    except ValueError:
+                        # If concatenation fails due to mismatched shapes, try stacking instead
+                        train_q_values_arr = np.stack(train_q_values, axis=0)
+                    train_q_values_arr = train_q_values_arr.astype(np.float32)
+
+                with h5py.File(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.h5"), 'w') as f:
+                    f.create_dataset('q_values', data=train_q_values_arr, compression='gzip', compression_opts=9)
+
+                # Save validation Q-values
+                # If valid_q_values is None, create an empty array; otherwise, process it.
+                if valid_q_values is None or len(valid_q_values) == 0:
+                    valid_q_values_arr = np.empty((0,), dtype=np.float32)
+                else:
+                    try:
+                        # Try concatenating the list of arrays
+                        valid_q_values_arr = np.concatenate(valid_q_values, axis=0)
+                    except ValueError:
+                        # If concatenation fails due to mismatched shapes, try stacking instead
+                        valid_q_values_arr = np.stack(valid_q_values, axis=0)
+                    valid_q_values_arr = valid_q_values_arr.astype(np.float32)
+
+                with h5py.File(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.h5"), 'w') as f:
+                    f.create_dataset('q_values', data=valid_q_values_arr, compression='gzip', compression_opts=9)
+
+                # Save test Q-values
+                # If test_q_values is None, create an empty array; otherwise, process it.
+                if test_q_values is None or len(test_q_values) == 0:
+                    test_q_values_arr = np.empty((0,), dtype=np.float32)
+                else:
+                    try:
+                        # Try concatenating the list of arrays
+                        test_q_values_arr = np.concatenate(test_q_values, axis=0)
+                    except ValueError:
+                        # If concatenation fails due to mismatched shapes, try stacking instead
+                        test_q_values_arr = np.stack(test_q_values, axis=0)
+                    test_q_values_arr = test_q_values_arr.astype(np.float32)
+
+
+                with h5py.File(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.h5"), 'w') as f:
+                    f.create_dataset('q_values', data=test_q_values_arr, compression='gzip', compression_opts=9)
+
+    writer.close()
 
     print("Training completed")
 

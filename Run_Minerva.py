@@ -49,6 +49,7 @@ def parse_args():
     parser.add_argument("--results_path", type=str, default="./Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
+    parser.add_argument("--q_log_dir", type=str, default="./runs/")
 
     return parser.parse_args()
 
