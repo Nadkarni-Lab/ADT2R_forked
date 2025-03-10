@@ -43,9 +43,9 @@ def parse_args():
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
     ## adding the 3 files separately instead of within data_path
-    parser.add_argument("--train-data", type=str, default="train_test_100k_2.tsv")
-    parser.add_argument("--val-data", type=str, default="val_test_100k_2.tsv")
-    parser.add_argument("--test-data", type=str, default="test_test_100k_2.tsv")
+    parser.add_argument("--train-data", type=str, default="train2.tsv")
+    parser.add_argument("--val-data", type=str, default="val2.tsv")
+    parser.add_argument("--test-data", type=str, default="test2.tsv")
     parser.add_argument("--results_path", type=str, default="./Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
