@@ -46,11 +46,11 @@ def parse_args():
     parser.add_argument("--train-data", type=str, default="train3.tsv")
     parser.add_argument("--val-data", type=str, default="val3.tsv")
     parser.add_argument("--test-data", type=str, default="test3.tsv")
-    parser.add_argument("--results_path", type=str, default="./Results/")
+    parser.add_argument("--results_path", type=str, default="/sc/arion/scratch/jayarp02/ADT2R_forked/Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
-    parser.add_argument("--exp_name", type=str, default="03102207")
+    parser.add_argument("--exp_name", type=str, default="03102230")
 
     return parser.parse_args()
 
