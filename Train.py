@@ -168,16 +168,20 @@ def run(args, device, exp_name):
     model = md.ADT2R(args.state_dim, args.action_dim, args.h_dim, args.n_heads, args.drop_p, args.max_timestep, device, args.lr, args.w_decay, args.lr_decay, args.lr_step, args.lam_actor, args.lam_critic, args.lam_reg, args.gamma, args.tau).to(device)
     scheduler = model.scheduler
 
+    ## make a new directory using current run time stamp and save the model there.
+    model_save_path = os.path.join(args.results_path, f"model_{exp_name}"+"_ADTR_Fold"+str(args.fold)+"/")
+    os.makedirs(model_save_path, exist_ok=True)
+
     # Initialize the SummaryWriter with a log directory.
-    writer = SummaryWriter(log_dir=str(args.q_log_dir)+"ADTR_Fold"+str(args.fold))
+    writer = SummaryWriter(log_dir=str(args.q_log_dir)+f"model_{exp_name}"+"_ADTR_Fold"+str(args.fold))
 
 
     # Open CSV files for train, validation, and test losses.
     # The files will have the columns: bidx, ep, loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, loss_all
-    with open(str(args.results_path)+'/train_loss.csv', 'w', newline='') as train_file, \
-            open(str(args.results_path)+'/val_loss.csv', 'w', newline='') as val_file, \
-            open(str(args.results_path)+'/test_loss.csv', 'w', newline='') as test_file, \
-            open(str(args.results_path)+'/epoch_summary.csv', 'w', newline='') as summary_file:
+    with open(str(model_save_path)+'/train_loss.csv', 'w', newline='') as train_file, \
+            open(str(model_save_path)+'/val_loss.csv', 'w', newline='') as val_file, \
+            open(str(model_save_path)+'/test_loss.csv', 'w', newline='') as test_file, \
+            open(str(model_save_path)+'/epoch_summary.csv', 'w', newline='') as summary_file:
         train_writer = csv.writer(train_file, delimiter='\t')
         val_writer = csv.writer(val_file, delimiter='\t')
         test_writer = csv.writer(test_file, delimiter='\t')
@@ -237,9 +241,9 @@ def run(args, device, exp_name):
             ])
 
             # Save the Q-value arrays for this epoch
-            # np.save(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.npy"), train_q_values)
-            # np.save(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.npy"), valid_q_values)
-            # np.save(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.npy"), test_q_values)
+            # np.save(os.path.join(model_save_path, f"q_values_train_epoch_{ep}.npy"), train_q_values)
+            # np.save(os.path.join(model_save_path, f"q_values_val_epoch_{ep}.npy"), valid_q_values)
+            # np.save(os.path.join(model_save_path, f"q_values_test_epoch_{ep}.npy"), test_q_values)
             # Save training Q-values with gzip compression (compression level 9)
 
             # If train_q_values is None, create an empty array; otherwise, process it.
@@ -323,7 +327,7 @@ def run(args, device, exp_name):
                         train_q_values_arr = np.stack(train_q_values, axis=0)
                     train_q_values_arr = train_q_values_arr.astype(np.float32)
 
-                with h5py.File(os.path.join(args.results_path, f"q_values_train_epoch_{ep}.h5"), 'w') as f:
+                with h5py.File(os.path.join(model_save_path, f"q_values_train_epoch_{ep}.h5"), 'w') as f:
                     f.create_dataset('q_values', data=train_q_values_arr, compression='gzip', compression_opts=9)
 
                 # Save validation Q-values
@@ -339,7 +343,7 @@ def run(args, device, exp_name):
                         valid_q_values_arr = np.stack(valid_q_values, axis=0)
                     valid_q_values_arr = valid_q_values_arr.astype(np.float32)
 
-                with h5py.File(os.path.join(args.results_path, f"q_values_val_epoch_{ep}.h5"), 'w') as f:
+                with h5py.File(os.path.join(model_save_path, f"q_values_val_epoch_{ep}.h5"), 'w') as f:
                     f.create_dataset('q_values', data=valid_q_values_arr, compression='gzip', compression_opts=9)
 
                 # Save test Q-values
@@ -356,7 +360,7 @@ def run(args, device, exp_name):
                     test_q_values_arr = test_q_values_arr.astype(np.float32)
 
 
-                with h5py.File(os.path.join(args.results_path, f"q_values_test_epoch_{ep}.h5"), 'w') as f:
+                with h5py.File(os.path.join(model_save_path, f"q_values_test_epoch_{ep}.h5"), 'w') as f:
                     f.create_dataset('q_values', data=test_q_values_arr, compression='gzip', compression_opts=9)
 
     writer.close()

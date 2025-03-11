@@ -43,13 +43,14 @@ def parse_args():
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
     ## adding the 3 files separately instead of within data_path
-    parser.add_argument("--train-data", type=str, default="train_test_100k_2.tsv")
-    parser.add_argument("--val-data", type=str, default="val_test_100k_2.tsv")
-    parser.add_argument("--test-data", type=str, default="test_test_100k_2.tsv")
+    parser.add_argument("--train-data", type=str, default="train_test_100k_3.tsv")
+    parser.add_argument("--val-data", type=str, default="val_test_100k_3.tsv")
+    parser.add_argument("--test-data", type=str, default="test_test_100k_3.tsv")
     parser.add_argument("--results_path", type=str, default="./Results/")
     parser.add_argument("--return_q_values", type=bool, default=False,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
+    parser.add_argument("--exp_name", type=str, default="03102207")
 
     return parser.parse_args()
 
@@ -58,7 +59,8 @@ if "__main__" == __name__:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    exp_name = f"ADTR_Fold{args.fold}"
+    #exp_name = f"ADTR_Fold{args.fold}"
+    exp_name = args.exp_name
 
     # Save configuration
     ut.save_configuration(args.config_path, exp_name+"_Configuration.txt", args)
