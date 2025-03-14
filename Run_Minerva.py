@@ -43,14 +43,14 @@ def parse_args():
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
     ## adding the 3 files separately instead of within data_path
-    parser.add_argument("--train-data", type=str, default="train3.tsv")
-    parser.add_argument("--val-data", type=str, default="val3.tsv")
-    parser.add_argument("--test-data", type=str, default="test3.tsv")
+    parser.add_argument("--train-data", type=str, default="train4.tsv")
+    parser.add_argument("--val-data", type=str, default="val4.tsv")
+    parser.add_argument("--test-data", type=str, default="test4.tsv")
     parser.add_argument("--results_path", type=str, default="/sc/arion/scratch/jayarp02/ADT2R_forked/Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
-    parser.add_argument("--exp_name", type=str, default="03102230")
+    parser.add_argument("--exp_name", type=str, default="03132330_fixedReward")
 
     return parser.parse_args()
 
