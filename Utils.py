@@ -203,9 +203,9 @@ def process_data_further(args):
     print("test_data: ", test_data.columns.to_list())
     print("val_data: ", val_data.columns.to_list())
 
-    train_data.to_csv(f"{args.data_path}/train_data_OHencoded.csv", index=False)
-    test_data.to_csv(f"{args.data_path}/test_data_OHencoded.csv", index=False)
-    val_data.to_csv(f"{args.data_path}/val_data_OHencoded.csv", index=False)
+    train_data.to_csv(f"{args.data_path}/train_data_OHencoded_terminal.csv", index=False)
+    test_data.to_csv(f"{args.data_path}/test_data_OHencoded_terminal.csv", index=False)
+    val_data.to_csv(f"{args.data_path}/val_data_OHencoded_terminal.csv", index=False)
 
     return train_data, test_data, val_data
 
