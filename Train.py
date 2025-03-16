@@ -12,6 +12,34 @@ import h5py
 import csv
 
 
+class ADT2RDiscreteActionMatchEvaluator:
+    def __init__(self, model, dataloader, device):
+        """
+        model: your ADT2R model instance.
+        dataloader: a PyTorch DataLoader for the evaluation dataset.
+        device: the device to run the model on (e.g., 'cuda' or 'cpu').
+        """
+        self.model = model
+        self.dataloader = dataloader
+        self.device = device
+
+    def evaluate(self):
+        self.model.eval()
+        total, correct = 0, 0
+        with torch.no_grad():
+            for batch in self.dataloader:
+                # Move batch data to the proper device
+                batch = {k: v.to(self.device) for k, v in batch.items()}
+                # Forward pass (is_train=False returns tuple with predicted actions at index 5)
+                outputs = self.model(batch, is_train=False)
+                action_preds = outputs[5]  # predicted actions tensor [B, T]
+                true_actions = batch["action"]
+                # Count matching actions
+                correct += (action_preds.cpu() == true_actions.cpu()).sum().item()
+                total += true_actions.numel()
+        return 100.0 * correct / total if total > 0 else 0.0
+
+
 def train_one_epoch(model, loader, device, ep, csv_writer, return_q_values=False):
     model.train()
     loss_all = 0
@@ -153,6 +181,72 @@ def eval_(model, loader, device, ep, csv_writer):
     return loss_all / len(loader), acc, jaccard, recall, wis, all_q_values
 
 
+def eval_wMatchPercentage_(model, loader, device, ep, csv_writer):
+    model.eval()
+    loss_all = 0
+    preds, reals, masks, probs, rewards = [], [], [], [], []
+    all_q_values = []  # to collect full Q-value tensors (v_hat) per batch
+
+    with torch.no_grad():
+        for bidx, batch in enumerate(loader):
+            print("EVAL bidx: ", bidx)
+            record = {k: v.to(device) for k, v in batch.items()}
+
+            # Forward pass with evaluation mode. Note that index 5 is the predicted actions.
+            loss_act_b, loss_reg_b, loss_actor_b, loss_critic_b, prob_b, pred_b, q_values, selected_q_values = model(
+                record, is_train=False)
+
+            print("EVAL loss_act_b: ", loss_act_b)
+            print("EVAL loss_reg_b: ", loss_reg_b)
+            print("EVAL loss_actor_b: ", loss_actor_b)
+            print("EVAL loss_critic_b: ", loss_critic_b)
+            print("EVAL prob_b: ", prob_b.shape)
+            print("EVAL pred_b: ", pred_b.shape)
+
+            print("EVAL loss_all_b: ", loss_act_b + loss_reg_b + loss_actor_b + loss_critic_b)
+            loss_all_b = loss_act_b + loss_reg_b + loss_actor_b + loss_critic_b
+            loss_all += loss_all_b.cpu().detach().numpy()
+
+            # Write batch-level loss metrics to CSV
+            csv_writer.writerow([
+                bidx,
+                ep,
+                loss_act_b.item(),
+                loss_reg_b.item(),
+                loss_actor_b.item(),
+                loss_critic_b.item(),
+                loss_all_b.item()
+            ])
+
+            # Collect predictions and true actions for discrete action match evaluation
+            preds.extend(pred_b.cpu().detach().numpy())
+            reals.extend(batch["action"].cpu().detach().numpy())
+            masks.extend(batch["seq_mask"].cpu().detach().numpy())
+            probs.extend(prob_b.cpu().detach().numpy())
+            rewards.extend(record["mortality"].cpu().detach().numpy())
+
+            # Save the Q-values for this batch
+            all_q_values.append(q_values.cpu().detach().numpy())
+
+    # Concatenate Q-values across batches
+    import numpy as np
+    all_q_values = np.concatenate(all_q_values, axis=0)
+
+    # Calculate additional metrics using your utility function
+    acc, jaccard, recall, wis = ut.calculate_metric(
+        np.array(reals), np.array(preds), np.array(masks), np.array(probs), np.array(rewards)
+    )
+
+    # Compute the discrete action match percentage:
+    reals_array = np.array(reals)
+    preds_array = np.array(preds)
+    match_percentage = 100.0 * (preds_array == reals_array).sum() / reals_array.size
+
+    # Return the loss, original metrics, the new action match metric, and the Q-values
+    return loss_all / len(loader), acc, jaccard, recall, wis, match_percentage, all_q_values
+
+
+
 
 def run(args, device, exp_name):
     """ Load datasets """
@@ -197,8 +291,8 @@ def run(args, device, exp_name):
         summary_header = [
             "ep",
             "Train Loss", "Validation Loss", "Test Loss",
-            "Val Accuracy", "Val Jaccard", "Val Recall", "Val WIS",
-            "Test Accuracy", "Test Jaccard", "Test Recall", "Test WIS"
+            "Val Accuracy", "Val Jaccard", "Val Recall", "Val WIS",  "Val Match",
+            "Test Accuracy", "Test Jaccard", "Test Recall", "Test WIS", "Test Match"
         ]
         summary_writer.writerow(summary_header)
 
@@ -218,8 +312,13 @@ def run(args, device, exp_name):
 
             # vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device, ep, val_writer)
             # ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis = eval_(model, test_loader, device, ep, test_writer)
-            vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis, valid_q_values  = eval_(model, valid_loader, device, ep, val_writer)
-            ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis, test_q_values = eval_(model, test_loader, device, ep, test_writer)
+            # vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis, valid_q_values  = eval_(model, valid_loader, device, ep, val_writer)
+            # ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis, test_q_values = eval_(model, test_loader, device, ep, test_writer)
+            vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis, vl_match, valid_q_values = eval_wMatchPercentage_(model,
+                                                                                                               valid_loader, device, ep,
+                                                                                   val_writer)
+            ts_loss, ts_acc, ts_jaccard, ts_recall, ts_wis, ts_match, test_q_values = eval_wMatchPercentage_(model, test_loader, device, ep,
+                                                                                  test_writer)
 
             #if ep >= 5:
                 # vl_loss, vl_acc, vl_jaccard, vl_recall, vl_wis = eval_(model, valid_loader, device)
@@ -229,15 +328,15 @@ def run(args, device, exp_name):
                 # print(f"Test Accuracy: {ts_acc}, Jaccard: {ts_jaccard}, Recall: {ts_recall}, WIS: {ts_wis}")
 
             print(f"Epoch: {ep}, Train Loss: {tr_loss}, Validation Loss: {vl_loss}, Test Loss: {ts_loss}")
-            print(f"Validation Accuracy: {vl_acc}, Jaccard: {vl_jaccard}, Recall: {vl_recall}, WIS: {vl_wis}")
-            print(f"Test Accuracy: {ts_acc}, Jaccard: {ts_jaccard}, Recall: {ts_recall}, WIS: {ts_wis}")
+            print(f"Validation Accuracy: {vl_acc}, Jaccard: {vl_jaccard}, Recall: {vl_recall}, WIS: {vl_wis}, Match: {vl_match}")
+            print(f"Test Accuracy: {ts_acc}, Jaccard: {ts_jaccard}, Recall: {ts_recall}, WIS: {ts_wis}, Match: {ts_match}")
 
             # Write epoch summary information to a separate file.
             summary_writer.writerow([
                 ep,
                 tr_loss, vl_loss, ts_loss,
-                vl_acc, vl_jaccard, vl_recall, vl_wis,
-                ts_acc, ts_jaccard, ts_recall, ts_wis
+                vl_acc, vl_jaccard, vl_recall, vl_wis, vl_match,
+                ts_acc, ts_jaccard, ts_recall, ts_wis, ts_match
             ])
 
             # Save the Q-value arrays for this epoch
@@ -260,10 +359,18 @@ def run(args, device, exp_name):
 
                 q_mean = train_q_values_arr.mean().item()
                 q_std = train_q_values_arr.std().item()
+                ##get median value of the Q-values
+                q_median = np.median(train_q_values_arr)
+                ## get min and max value of the Q-values
+                q_min = train_q_values_arr.min().item()
+                q_max = train_q_values_arr.max().item()
 
                 # Log scalar summary stats.
                 writer.add_scalar("TRAIN_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("TRAIN_Q_Values/Median", q_median, ep)
                 writer.add_scalar("TRAIN_Q_Values/Std", q_std, ep)
+                writer.add_scalar("TRAIN_Q_Values/Min", q_min, ep)
+                writer.add_scalar("TRAIN_Q_Values/Max", q_max, ep)
 
                 # Log a histogram of the Q-values.
                 writer.add_histogram("TRAIN_Q_Values/Histogram", train_q_values_arr, ep)
@@ -281,10 +388,19 @@ def run(args, device, exp_name):
 
                 q_mean = valid_q_values_arr.mean().item()
                 q_std = valid_q_values_arr.std().item()
+                q_median = np.median(valid_q_values_arr)
+                q_min = valid_q_values_arr.min().item()
+                q_max = valid_q_values_arr.max().item()
 
                 # Log scalar summary stats.
                 writer.add_scalar("VALID_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("VALID_Q_Values/Median", q_median, ep)
                 writer.add_scalar("VALID_Q_Values/Std", q_std, ep)
+                writer.add_scalar("VALID_Q_Values/Min", q_min, ep)
+                writer.add_scalar("VALID_Q_Values/Max", q_max, ep)
+
+                ## add percent valid matching
+                writer.add_scalar("VALID_Q_Values/PercentActionsMatch", vl_match, ep)
 
                 # Log a histogram of the Q-values.
                 writer.add_histogram("VALID_Q_Values/Histogram", valid_q_values_arr, ep)
@@ -302,10 +418,20 @@ def run(args, device, exp_name):
 
                 q_mean = test_q_values_arr.mean().item()
                 q_std = test_q_values_arr.std().item()
+                q_median = np.median(test_q_values_arr)
+                q_min = test_q_values_arr.min().item()
+                q_max = test_q_values_arr.max().item()
+
 
                 # Log scalar summary stats.
                 writer.add_scalar("TEST_Q_Values/Mean", q_mean, ep)
+                writer.add_scalar("TEST_Q_Values/Median", q_median, ep)
                 writer.add_scalar("TEST_Q_Values/Std", q_std, ep)
+                writer.add_scalar("TEST_Q_Values/Min", q_min, ep)
+                writer.add_scalar("TEST_Q_Values/Max", q_max, ep)
+
+                ## add percent test matching
+                writer.add_scalar("TEST_Q_Values/PercentActionsMatch", ts_match, ep)
 
                 # Log a histogram of the Q-values.
                 writer.add_histogram("TEST_Q_Values/Histogram", test_q_values_arr, ep)
