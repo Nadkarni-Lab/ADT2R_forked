@@ -50,7 +50,7 @@ def parse_args():
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
-    parser.add_argument("--exp_name", type=str, default="03132330_fixedReward")
+    parser.add_argument("--exp_name", type=str, default="03151200_fixedUpdatedReward")
 
     return parser.parse_args()
 
