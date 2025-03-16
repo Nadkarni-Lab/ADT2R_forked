@@ -42,10 +42,10 @@ def parse_args():
     parser.add_argument("--config_path", type=str, default="./Configuration/")
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
-    ## adding the 3 files separately instead of within data_path
-    parser.add_argument("--train-data", type=str, default="train4.tsv")
-    parser.add_argument("--val-data", type=str, default="val4.tsv")
-    parser.add_argument("--test-data", type=str, default="test4.tsv")
+    ## adding the 3 files separately instead of within data_path - use _2 for the 2nd round of data.
+    parser.add_argument("--train-data", type=str, default="train4_2.tsv")
+    parser.add_argument("--val-data", type=str, default="val4_2.tsv")
+    parser.add_argument("--test-data", type=str, default="test4_2.tsv")
     parser.add_argument("--results_path", type=str, default="/sc/arion/scratch/jayarp02/ADT2R_forked/Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
