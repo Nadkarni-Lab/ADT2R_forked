@@ -203,9 +203,17 @@ def process_data_further(args):
     print("test_data: ", test_data.columns.to_list())
     print("val_data: ", val_data.columns.to_list())
 
-    train_data.to_csv(f"{args.data_path}/train_data_OHencoded_terminal.csv", index=False)
-    test_data.to_csv(f"{args.data_path}/test_data_OHencoded_terminal.csv", index=False)
-    val_data.to_csv(f"{args.data_path}/val_data_OHencoded_terminal.csv", index=False)
+    ## make temp directory to store intermediate files and name the directory after the experiment name.
+    temp_dir = create_dir(f"{args.data_path}/temp_{args.exp_name}")
+    print("temp dir: ", temp_dir)
+
+    ## save train data, test data and val data to the temp directory.
+    # train_data.to_csv(f"{args.data_path}/train_data_OHencoded_terminal.csv", index=False)
+    # test_data.to_csv(f"{args.data_path}/test_data_OHencoded_terminal.csv", index=False)
+    # val_data.to_csv(f"{args.data_path}/val_data_OHencoded_terminal.csv", index=False)
+    train_data.to_csv(f"{temp_dir}/train_data_OHencoded_terminal.csv", index=False)
+    test_data.to_csv(f"{temp_dir}/test_data_OHencoded_terminal.csv", index=False)
+    val_data.to_csv(f"{temp_dir}/val_data_OHencoded_terminal.csv", index=False)
 
     return train_data, test_data, val_data
 

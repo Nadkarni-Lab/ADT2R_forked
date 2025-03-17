@@ -18,10 +18,10 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate") ### start with 0.001 or 10^-4
     # generally 3e-4 and then adjust based on the results.
     parser.add_argument("--lr_decay", type=float, default=0.99, help="Learning rate decay")
-    parser.add_argument("--lr_step", type=int, default=2, help="Learning rate decay stepsize")
+    parser.add_argument("--lr_step", type=int, default=2, help="Learning rate decay step-size")
     parser.add_argument("--w_decay", default=0.0001, type=float, help="Weight decay (lambda) ℓ2 regularization")
     parser.add_argument("--bs", type=int, default=64, help="Batch size")
-    parser.add_argument("--total_epoch", type=int, default=3000, help="# of epochs")
+    parser.add_argument("--total_epoch", type=int, default=1000, help="# of epochs")
     parser.add_argument("--gpu", type=int, default=1, help="GPU number")
     parser.add_argument("--save", type=bool, default=True)
     parser.add_argument("--lam_reg", type=float, default=1.0, help="Regularization loss coefficient")
@@ -43,14 +43,14 @@ def parse_args():
     ## adding data-path as location of the files.
     parser.add_argument("--data_path", type=str, default="./Data/")
     ## adding the 3 files separately instead of within data_path - use _2 for the 2nd round of data.
-    parser.add_argument("--train-data", type=str, default="train4_2.tsv")
-    parser.add_argument("--val-data", type=str, default="val4_2.tsv")
-    parser.add_argument("--test-data", type=str, default="test4_2.tsv")
+    parser.add_argument("--train-data", type=str, default="train4_3.tsv")
+    parser.add_argument("--val-data", type=str, default="val4_3.tsv")
+    parser.add_argument("--test-data", type=str, default="test4_3.tsv")
     parser.add_argument("--results_path", type=str, default="/sc/arion/scratch/jayarp02/ADT2R_forked/Results/")
     parser.add_argument("--return_q_values", type=bool, default=True,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
-    parser.add_argument("--exp_name", type=str, default="03151200_fixedUpdatedReward")
+    parser.add_argument("--exp_name", type=str, default="03171100_fixedUpdatedReward")
 
     return parser.parse_args()
 

@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument("--lr_step", type=int, default=2, help="Learning rate decay stepsize")
     parser.add_argument("--w_decay", default=0.0001, type=float, help="Weight decay (lambda) ℓ2 regularization")
     parser.add_argument("--bs", type=int, default=64, help="Batch size")
-    parser.add_argument("--total_epoch", type=int, default=500, help="# of epochs")
+    parser.add_argument("--total_epoch", type=int, default=50, help="# of epochs")
     parser.add_argument("--gpu", type=int, default=1, help="GPU number")
     parser.add_argument("--save", type=bool, default=True)
     parser.add_argument("--lam_reg", type=float, default=1.0, help="Regularization loss coefficient")
@@ -50,7 +50,7 @@ def parse_args():
     parser.add_argument("--return_q_values", type=bool, default=False,
                         help="Whether to return and save Q-values during training.")
     parser.add_argument("--q_log_dir", type=str, default="./runs/")
-    parser.add_argument("--exp_name", type=str, default="03161600")
+    parser.add_argument("--exp_name", type=str, default="03171100_fixedUpdatedReward")
 
     return parser.parse_args()
 
